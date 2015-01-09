@@ -40,7 +40,9 @@ class LocDualContext : public ContextBase {
     static const MsgTask* mMsgTask;
     static ContextBase* mFgContext;
     static ContextBase* mBgContext;
+#if 0
     static ContextBase* mInjectContext;
+#endif
     static const MsgTask* getMsgTask(MsgTask::tCreate tCreator,
                                      const char* name);
     static const MsgTask* getMsgTask(MsgTask::tAssociate tAssociate,

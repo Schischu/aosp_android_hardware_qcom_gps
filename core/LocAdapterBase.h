@@ -50,7 +50,9 @@ protected:
 public:
     inline virtual ~LocAdapterBase() { mLocApi->removeAdapter(this); }
     LocAdapterBase(const LOC_API_ADAPTER_EVENT_MASK_T mask,
-                   ContextBase* context, LocAdapterProxyBase *adapterProxyBase = NULL);
+                   ContextBase* context, LocAdapterProxyBase *adapterProxyBase);
+    LocAdapterBase(const LOC_API_ADAPTER_EVENT_MASK_T mask,
+                   ContextBase* context);
     inline LOC_API_ADAPTER_EVENT_MASK_T
         checkMask(LOC_API_ADAPTER_EVENT_MASK_T mask) const {
         return mEvtMask & mask;

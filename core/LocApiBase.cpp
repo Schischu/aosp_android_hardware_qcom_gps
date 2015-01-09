@@ -133,6 +133,13 @@ LocApiBase::LocApiBase(const MsgTask* msgTask,
     memset(mLocAdapters, 0, sizeof(mLocAdapters));
 }
 
+LocApiBase::LocApiBase(const MsgTask* msgTask,
+                       LOC_API_ADAPTER_EVENT_MASK_T excludedMask) :
+    mExcludedMask(excludedMask), mMsgTask(msgTask), mMask(0), mContext(NULL)
+{
+    memset(mLocAdapters, 0, sizeof(mLocAdapters));
+}
+
 LOC_API_ADAPTER_EVENT_MASK_T LocApiBase::getEvtMask()
 {
     LOC_API_ADAPTER_EVENT_MASK_T mask = 0;
@@ -208,7 +215,9 @@ void LocApiBase::handleEngineUpEvent()
     // This will take care of renegotiating the loc handle
     mMsgTask->sendMsg(new LocSsrMsg(this));
 
+#ifdef NEW_API
     LocDualContext::injectFeatureConfig(mContext);
+#endif
 
     // loop through adapters, and deliver to all adapters.
     TO_ALL_LOCADAPTERS(mLocAdapters[i]->handleEngineUpEvent());

@@ -50,6 +50,15 @@ LocAdapterBase::LocAdapterBase(const LOC_API_ADAPTER_EVENT_MASK_T mask,
     mLocApi->addAdapter(this);
 }
 
+LocAdapterBase::LocAdapterBase(const LOC_API_ADAPTER_EVENT_MASK_T mask,
+                               ContextBase* context) :
+    mEvtMask(mask), mContext(context),
+    mLocApi(context->getLocApi()), mLocAdapterProxyBase(NULL),
+    mMsgTask(context->getMsgTask())
+{
+    mLocApi->addAdapter(this);
+}
+
 void LocAdapterBase::handleEngineUpEvent()
 {
     if (mLocAdapterProxyBase) {

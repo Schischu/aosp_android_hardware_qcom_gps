@@ -84,6 +84,8 @@ protected:
     LocApiBase(const MsgTask* msgTask,
                LOC_API_ADAPTER_EVENT_MASK_T excludedMask,
                ContextBase* context = NULL);
+    LocApiBase(const MsgTask* msgTask,
+               LOC_API_ADAPTER_EVENT_MASK_T excludedMask);
     inline virtual ~LocApiBase() { close(); }
     bool isInSession();
     const LOC_API_ADAPTER_EVENT_MASK_T mExcludedMask;
