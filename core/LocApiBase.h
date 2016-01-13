@@ -53,13 +53,6 @@ int decodeAddress(char *addr_string, int string_size,
 #define TO_1ST_HANDLING_ADAPTER(adapters, call)                              \
     for (int i = 0; i <MAX_ADAPTERS && NULL != (adapters)[i] && !(call); i++);
 
-enum xtra_version_check {
-    DISABLED,
-    AUTO,
-    XTRA2,
-    XTRA3
-};
-
 class LocAdapterBase;
 struct LocSsrMsg;
 struct LocOpenMsg;
@@ -80,7 +73,6 @@ class LocApiBase {
     const MsgTask* mMsgTask;
     ContextBase *mContext;
     LocAdapterBase* mLocAdapters[MAX_ADAPTERS];
-    uint64_t mSupportedMsg;
 
 protected:
     virtual enum loc_api_adapter_err
@@ -92,6 +84,8 @@ protected:
     LocApiBase(const MsgTask* msgTask,
                LOC_API_ADAPTER_EVENT_MASK_T excludedMask,
                ContextBase* context = NULL);
+    LocApiBase(const MsgTask* msgTask,
+               LOC_API_ADAPTER_EVENT_MASK_T excludedMask);
     inline virtual ~LocApiBase() { close(); }
     bool isInSession();
     const LOC_API_ADAPTER_EVENT_MASK_T mExcludedMask;
@@ -129,7 +123,6 @@ public:
     void reportDataCallOpened();
     void reportDataCallClosed();
     void requestNiNotify(GpsNiNotification &notify, const void* data);
-    void saveSupportedMsgList(uint64_t supportedMsgList);
     void reportGpsMeasurementData(GpsData &gpsMeasurementData);
 
     // downward calls
@@ -214,16 +207,8 @@ public:
     virtual void installAGpsCert(const DerEncodedCertificate* pData,
                                  size_t length,
                                  uint32_t slotBitMask);
+
     inline virtual void setInSession(bool inSession) {}
-    inline bool isMessageSupported (LocCheckingMessagesID msgID) const {
-        if (msgID > (sizeof(mSupportedMsg) << 3)) {
-            return false;
-        } else {
-            uint32_t messageChecker = 1 << msgID;
-            return (messageChecker & mSupportedMsg) == messageChecker;
-        }
-    }
-    void updateEvtMask();
 
     /*Values for lock
       1 = Do not lock any position sessions
@@ -238,8 +223,6 @@ public:
       -1 on failure
      */
     virtual int getGpsLock(void);
-
-    virtual enum loc_api_adapter_err setXtraVersionCheck(enum xtra_version_check check);
 
     /*
       Update gps reporting events

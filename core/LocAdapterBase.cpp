@@ -50,6 +50,15 @@ LocAdapterBase::LocAdapterBase(const LOC_API_ADAPTER_EVENT_MASK_T mask,
     mLocApi->addAdapter(this);
 }
 
+LocAdapterBase::LocAdapterBase(const LOC_API_ADAPTER_EVENT_MASK_T mask,
+                               ContextBase* context) :
+    mEvtMask(mask), mContext(context),
+    mLocApi(context->getLocApi()), mLocAdapterProxyBase(NULL),
+    mMsgTask(context->getMsgTask())
+{
+    mLocApi->addAdapter(this);
+}
+
 void LocAdapterBase::handleEngineUpEvent()
 {
     if (mLocAdapterProxyBase) {
@@ -69,14 +78,8 @@ void LocAdapterBase::
                    GpsLocationExtended &locationExtended,
                    void* locationExt,
                    enum loc_sess_status status,
-                   LocPosTechMask loc_technology_mask) {
-    if (mLocAdapterProxyBase == NULL ||
-        !mLocAdapterProxyBase->reportPosition(location,
-                                              status,
-                                              loc_technology_mask)) {
-        DEFAULT_IMPL()
-    }
-}
+                   LocPosTechMask loc_technology_mask)
+DEFAULT_IMPL()
 
 void LocAdapterBase::
     reportSv(GpsSvStatus &svStatus,

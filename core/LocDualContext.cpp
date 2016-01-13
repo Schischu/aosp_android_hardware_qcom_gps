@@ -56,7 +56,9 @@ LocDualContext::mBgExclMask =
 const MsgTask* LocDualContext::mMsgTask = NULL;
 ContextBase* LocDualContext::mFgContext = NULL;
 ContextBase* LocDualContext::mBgContext = NULL;
+#if 0
 ContextBase* LocDualContext::mInjectContext = NULL;
+#endif
 // the name must be shorter than 15 chars
 const char* LocDualContext::mLocationHalName = "Loc_hal_worker";
 const char* LocDualContext::mLBSLibName = "liblbs_core.so";
@@ -89,10 +91,12 @@ ContextBase* LocDualContext::getLocFgContext(MsgTask::tCreate tCreator,
         mFgContext = new LocDualContext(msgTask,
                                         mFgExclMask);
     }
+#if 0
     if(NULL == mInjectContext) {
         mInjectContext = mFgContext;
         injectFeatureConfig(mInjectContext);
     }
+#endif
     return mFgContext;
 }
 
@@ -104,11 +108,13 @@ ContextBase* LocDualContext::getLocFgContext(MsgTask::tAssociate tAssociate,
         mFgContext = new LocDualContext(msgTask,
                                         mFgExclMask);
     }
+#if 0
     if(NULL == mInjectContext) {
         LOC_LOGD("%s:%d]: mInjectContext is FgContext", __func__, __LINE__);
         mInjectContext = mFgContext;
         injectFeatureConfig(mInjectContext);
     }
+#endif
     return mFgContext;
 
 }
@@ -121,11 +127,13 @@ ContextBase* LocDualContext::getLocBgContext(MsgTask::tCreate tCreator,
         mBgContext = new LocDualContext(msgTask,
                                         mBgExclMask);
     }
+#if 0
     if(NULL == mInjectContext) {
         LOC_LOGD("%s:%d]: mInjectContext is BgContext", __func__, __LINE__);
         mInjectContext = mBgContext;
         injectFeatureConfig(mInjectContext);
     }
+#endif
     return mBgContext;
 }
 
@@ -137,14 +145,17 @@ ContextBase* LocDualContext::getLocBgContext(MsgTask::tAssociate tAssociate,
         mBgContext = new LocDualContext(msgTask,
                                         mBgExclMask);
     }
+#if 0
     if(NULL == mInjectContext) {
         LOC_LOGD("%s:%d]: mInjectContext is BgContext", __func__, __LINE__);
         mInjectContext = mBgContext;
         injectFeatureConfig(mInjectContext);
     }
+#endif
     return mBgContext;
 }
 
+#if 0
 void LocDualContext :: injectFeatureConfig(ContextBase *curContext)
 {
     LOC_LOGD("%s:%d]: Enter", __func__, __LINE__);
@@ -155,6 +166,7 @@ void LocDualContext :: injectFeatureConfig(ContextBase *curContext)
     }
     LOC_LOGD("%s:%d]: Exit", __func__, __LINE__);
 }
+#endif
 
 LocDualContext::LocDualContext(const MsgTask* msgTask,
                                LOC_API_ADAPTER_EVENT_MASK_T exMask) :
