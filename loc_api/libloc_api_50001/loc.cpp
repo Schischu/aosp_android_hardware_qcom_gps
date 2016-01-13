@@ -47,14 +47,14 @@
 
 using namespace loc_core;
 
-#define LOC_PM_CLIENT_NAME "GPS"
-
 //Globals defns
 static gps_location_callback gps_loc_cb = NULL;
 static gps_sv_status_callback gps_sv_cb = NULL;
+static agps_status_callback agps_status_cb = NULL;
 
 static void local_loc_cb(UlpLocation* location, void* locExt);
 static void local_sv_cb(GpsSvStatus* sv_status, void* svExt);
+static void loc_agps_status_cb(AGpsStatus* status);
 
 static const GpsGeofencingInterface* get_geofence_interface(void);
 
@@ -123,6 +123,9 @@ static const GpsNiInterface sLocEngNiInterface =
    loc_ni_init,
    loc_ni_respond,
 };
+
+// For shutting down MDM in fusion devices
+static int mdm_fd = -1;
 
 static int loc_gps_measurement_init(GpsMeasurementCallbacks* callbacks);
 static void loc_gps_measurement_close();
@@ -230,7 +233,6 @@ extern "C" const GpsInterface* get_gps_interface()
     switch (sGnssType)
     {
     case GNSS_GSS:
-    case GNSS_AUTO:
         //APQ8064
         gps_conf.CAPABILITIES &= ~(GPS_CAPABILITY_MSA | GPS_CAPABILITY_MSB);
         gss_fd = open("/dev/gss", O_RDONLY);
@@ -275,6 +277,10 @@ SIDE EFFECTS
 static int loc_init(GpsCallbacks* callbacks)
 {
     int retVal = -1;
+<<<<<<< HEAD
+=======
+    int i = 0;
+>>>>>>> a0e93b9... lt03lte: Compatibility to binary blob
     ENTRY_LOG();
     LOC_API_ADAPTER_EVENT_MASK_T event;
 
@@ -312,9 +318,8 @@ static int loc_init(GpsCallbacks* callbacks)
     retVal = loc_eng_init(loc_afw_data, &clientCallbacks, event, NULL);
     loc_afw_data.adapter->mSupportsAgpsRequests = !loc_afw_data.adapter->hasAgpsExtendedCapabilities();
     loc_afw_data.adapter->mSupportsPositionInjection = !loc_afw_data.adapter->hasCPIExtendedCapabilities();
-    loc_afw_data.adapter->mSupportsTimeInjection = !loc_afw_data.adapter->hasCPIExtendedCapabilities();
     loc_afw_data.adapter->setGpsLockMsg(0);
-    loc_afw_data.adapter->requestUlp(getCarrierCapabilities());
+    loc_afw_data.adapter->requestUlp(gps_conf.CAPABILITIES);
 
     if(retVal) {
         LOC_LOGE("loc_eng_init() fail!");
@@ -326,12 +331,86 @@ static int loc_init(GpsCallbacks* callbacks)
 
     LOC_LOGD("loc_eng_init() success!");
 
+<<<<<<< HEAD
+=======
+#ifdef PLATFORM_MSM8084
+    if (mdm_fd < 0) {
+        int (*open_first_external_modem)(void);
+        const char *name = "libdetectmodem.so";
+        const char *func = "open_first_external_modem";
+        const char *error;
+
+        void *lib = ::dlopen(name, RTLD_NOW);
+        error = ::dlerror();
+        if (!lib) {
+            LOC_LOGE("%s: could not find %s: %s", __func__, name, error);
+            goto err;
+        }
+
+        open_first_external_modem = NULL;
+        *(void **)(&open_first_external_modem) = ::dlsym(lib, func);
+        error = ::dlerror();
+
+        if (!open_first_external_modem) {
+            LOC_LOGE("%s: could not find symbol %s in %s: %s",
+                     __func__, func, name, error);
+        }
+        else {
+            errno = 0;
+            mdm_fd = open_first_external_modem();
+            if (mdm_fd < 0) {
+                LOC_LOGE("%s: %s failed: %s\n", __func__, func, strerror(errno));
+            }
+            else {
+                LOC_LOGD("%s: external power up modem opened successfully\n", __func__);
+            }
+        }
+        dlclose(lib);
+    } else {
+        LOC_LOGD("powerup_node has been opened before");
+    }
+#endif //PLATFORM_MSM8084
+>>>>>>> a0e93b9... lt03lte: Compatibility to binary blob
 err:
     EXIT_LOG(%d, retVal);
     return retVal;
 }
 
 /*===========================================================================
+<<<<<<< HEAD
+=======
+FUNCTION    loc_close_mdm_node
+
+DESCRIPTION
+   closes mdm_fd which is the modem powerup node obtained in loc_init
+
+DEPENDENCIES
+   None
+
+RETURN VALUE
+   None
+
+SIDE EFFECTS
+   N/A
+
+===========================================================================*/
+static void loc_close_mdm_node()
+{
+    ENTRY_LOG();
+    if (mdm_fd >= 0) {
+        LOC_LOGD("closing the powerup node");
+        close(mdm_fd);
+        mdm_fd = -1;
+        LOC_LOGD("finished closing the powerup node");
+    } else {
+        LOC_LOGD("powerup node has not been opened yet.");
+    }
+
+    EXIT_LOG(%s, VOID_RET);
+}
+
+/*===========================================================================
+>>>>>>> a0e93b9... lt03lte: Compatibility to binary blob
 FUNCTION    loc_cleanup
 
 DESCRIPTION
@@ -504,11 +583,39 @@ SIDE EFFECTS
 ===========================================================================*/
 static int loc_inject_location(double latitude, double longitude, float accuracy)
 {
+    static bool initialized = false;
+    static bool enable_cpi = true;
     ENTRY_LOG();
+
+    if (accuracy < 1000)
+    {
+      accuracy = 1000;
+    }
 
     int ret_val = 0;
     ret_val = loc_eng_inject_location(loc_afw_data, latitude, longitude, accuracy);
 
+    if(!initialized)
+    {
+        char value[PROPERTY_VALUE_MAX];
+        memset(value, 0, sizeof(value));
+        (void)property_get("persist.gps.qc_nlp_in_use", value, "0");
+        if(0 == strcmp(value, "1"))
+        {
+            enable_cpi = false;
+            LOC_LOGI("GPS HAL coarse position injection disabled");
+        }
+        else
+        {
+            LOC_LOGI("GPS HAL coarse position injection enabled");
+        }
+        initialized = true;
+    }
+
+    if(enable_cpi)
+    {
+      ret_val = loc_eng_inject_location(loc_afw_data, latitude, longitude, accuracy);
+    }
     EXIT_LOG(%d, ret_val);
     return ret_val;
 }
@@ -564,7 +671,7 @@ const GpsGeofencingInterface* get_geofence_interface(void)
     }
     dlerror();    /* Clear any existing error */
     get_gps_geofence_interface = (get_gps_geofence_interface_function)dlsym(handle, "gps_geofence_get_interface");
-    if ((error = dlerror()) != NULL && NULL != get_gps_geofence_interface)  {
+    if ((error = dlerror()) != NULL)  {
         LOC_LOGE ("%s, dlsym for get_gps_geofence_interface failed, error = %s\n", __func__, error);
         goto exit;
      }
@@ -663,6 +770,10 @@ SIDE EFFECTS
 static void loc_agps_init(AGpsCallbacks* callbacks)
 {
     ENTRY_LOG();
+    if (agps_status_cb == NULL) {
+        agps_status_cb = callbacks->status_cb;
+        callbacks->status_cb = loc_agps_status_cb;
+    }
     loc_eng_agps_init(loc_afw_data, (AGpsExtCallbacks*)callbacks);
     EXIT_LOG(%s, VOID_RET);
 }
@@ -885,7 +996,7 @@ static int loc_xtra_inject_data(char* data, int length)
         ret_val = loc_eng_xtra_inject_data(loc_afw_data, data, length);
     else
         LOC_LOGE("%s, Could not inject XTRA data. Buffer address: %p, length: %d",
-                 __func__, data, length);
+                __func__, data, length);
     EXIT_LOG(%d, ret_val);
     return ret_val;
 }
@@ -1029,7 +1140,7 @@ static int loc_agps_revoke_certificates(const Sha1CertificateFingerprint* finger
                                         size_t length)
 {
     ENTRY_LOG();
-    LOC_LOGE("%s:%d]: agps_revoke_certificates not supported");
+    LOC_LOGE("agps_revoke_certificates not supported");
     int ret_val = AGPS_CERTIFICATE_ERROR_GENERIC;
     EXIT_LOG(%d, ret_val);
     return ret_val;
@@ -1074,3 +1185,19 @@ static void local_sv_cb(GpsSvStatus* sv_status, void* svExt)
     EXIT_LOG(%s, VOID_RET);
 }
 
+<<<<<<< HEAD
+=======
+static void loc_agps_status_cb(AGpsStatus* status)
+{
+    ENTRY_LOG();
+
+    if (NULL != agps_status_cb) {
+        size_t realSize = sizeof(AGpsStatus);
+        LOC_LOGD("agps_status size=%d real-size=%d", status->size, realSize);
+        status->size = realSize;
+        agps_status_cb(status);
+    }
+    EXIT_LOG(%s, VOID_RET);
+}
+
+>>>>>>> a0e93b9... lt03lte: Compatibility to binary blob
